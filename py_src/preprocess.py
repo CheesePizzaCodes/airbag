@@ -8,6 +8,7 @@
 import os
 import re
 import copy
+from typing import Tuple
 
 import pandas as pd
 import numpy as np
@@ -16,6 +17,7 @@ from sklearn.model_selection import train_test_split
 from normalization_strategies import NormalizationStrategy, MinMax, MeanSdev
 from loading_strategies import LoadingStrategy, FromCase, FromPath
 from graphics import Visualizer
+from util import extract_marks
 
 
 class Loader:
@@ -40,21 +42,21 @@ class Loader:
         self._strategy = strategy
 
 
-    def load_sensor_data(self, *args, **kwargs) -> pd.DataFrame:
+    def load_sensor_data(self, *args, **kwargs) -> pd.DataFrame | None:
         try: 
             data, metadata = self._strategy.load_sensor_data(*args, **kwargs)
             return data, metadata
         except TypeError:
-            print('Data collection failed.')
+            # print('Data collection failed.')
             return None, None
 
-    def load_label_data(self, *args) -> pd.DataFrame:
+    def load_label_data(self, *args) -> pd.DataFrame | None:
         try:
             data = self._strategy.load_label_data(*args)
             return data
         except TypeError:
-            print('Data collection failed.')
-            return None, None
+            # print('Data collection failed.')
+            return None
 
 
 
@@ -187,31 +189,48 @@ class PreProcessingPipeline:
     """
 
     def __init__(self, ):
-        self.loader: Loader = Loader(strategy=FromPath()) 
+        self.loader: Loader = Loader(strategy=FromCase()) 
         self.normalizer: Normalizer = None
 
 
-    def batch_load(self):
+    def batch_load(self) -> Tuple[pd.DataFrame]:
         """
         Uses a loader object to load all files in a directory and labels them
         """
-        
+        SUBJECT_COUNT = 36
+        TASK_COUNT = 34
+        RUN_COUNT = 5
         path = f'{self.loader._strategy.base_path}/sensor_data' 
-        dfs = []
+        falls = []
+        regular_activities = []
 
-        for root, subject_folder_names, _ in os.walk(path):
-            for subject_folder_name in subject_folder_names:
-                
-                subject_folder_path = os.path.join(root, subject_folder_name)
-                for root, _, files in os.walk(subject_folder_path):
-                    for file_name in files: 
-                        file_path = os.path.join(root, file_name)
-                        data, metadata = self.loader.load_sensor_data(file_path)
-                        dfs.append(data)
-        batch_df = pd.concat(dfs)
+        for subject in range(6, SUBJECT_COUNT+1):
+            label_data = self.loader.load_label_data(subject)
+            if label_data is None:
+                print(f'failed to collect data for user {subject}')
+                continue
+            for task in range(1, TASK_COUNT + 1):
+                for run in range(1, RUN_COUNT + 1):
+                    output = self.loader.load_sensor_data(subject, task, run)
+                    if output is None:
+                        continue
+                    sensor_data, metadata = output
 
+                    marks = extract_marks(label_data=label_data, task=task, run=run)
+                    if marks is None:
+                        regular_activities.append(sensor_data)
+                    else:
+                        onset_frame, impact_frame = marks
+                        falls.append(sensor_data[onset_frame: impact_frame])
+        falls_df = pd.concat(falls, axis=0) # join='inner'
+        falls_df.reset_index(inplace=True)
+        regular_activities_df = pd.concat(regular_activities, axis=0)
+        regular_activities_df.reset_index(inplace=True)
+        return falls_df, regular_activities_df
 
-        ...
+    def batch_normalize(self):
+
+        normal, fall = self.batch_load()
 
     def process(self, audio_files_dir):
         for root, _, files in os.walk(audio_files_dir):
@@ -258,11 +277,11 @@ def batch_preprocess(sample_rate, duration, channels, frame_size, hop_length, sp
 
 def test_1():
     SUBJECT = 10
-    TASK = 6
-    RUN = 3
+    TASK = 23
+    RUN = 1
 
     # Load data
-    loader = Loader()
+    loader = Loader(strategy=FromCase)
 
     sensor_data, metadata = loader.load_sensor_data(SUBJECT, TASK, RUN)
     label_data = loader.load_label_data(SUBJECT)
@@ -288,8 +307,8 @@ def test_2():
 
 
 if __name__ == '__main__':
-    test_1()
-    # test_2()
+    # test_1()
+    test_2()
     # FRAME_SIZE = 512
     # HOP_LENGTH = 256
     # DURATION = 0.74
