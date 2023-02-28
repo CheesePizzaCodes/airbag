@@ -3,7 +3,7 @@ import pandas as pd
 import traceback
 
 
-
+from util import extract_marks
 
 
 
@@ -35,22 +35,20 @@ class Visualizer:
                 line, = ax.plot(self.sensor_data['TimeStamp(s)'], self.sensor_data[i])
                 line.set_label(i)
                 ax.legend(loc=1)
-            query_exp = f'`Task Code (Task ID)` == @self.tsk and `Trial ID` == @self.run'
-            row = self.label_data.query(query_exp)
-            if not row.empty: 
-                self._add_marks(ax, row)
+                self._add_marks(ax)
         plt.show(block=False)
         return
 
-    def _add_marks(self, ax, row):
+    def _add_marks(self, ax):
         time = self.sensor_data['TimeStamp(s)']
-        onset_frame = row.iat[0, 3]
-        impact_frame = row.iat[0, 4]
+        marks = extract_marks(label_data=self.label_data, task = self.tsk, run = self.run)
+        if marks is None:
+            return
+        onset_frame, impact_frame = marks
         ax.axvline(x=time[onset_frame], color = 'r')
         ax.axvline(x=time[impact_frame], color = 'r')
 
         
-
 
 
 
@@ -64,7 +62,7 @@ if __name__ == '__main__':
         # tsk = int(input('ID de la actividad: '))
         # run = int(input('ID del intento: '))
 
-        sub, run, tsk = 7, 1, 1
+        sub, run, tsk = 7, 1, 32
         
         
         loader = Loader()
@@ -77,7 +75,8 @@ if __name__ == '__main__':
         visualizer = Visualizer(sensor_data, sensor_metadata, label_data)
         visualizer.generate_graphs()
 
-        input()
+        if input('Press <enter> to continue or enter <q> to exit... ') == 'q':
+            break
 
 
 

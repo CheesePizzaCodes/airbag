@@ -6,7 +6,8 @@ from abc import ABC, abstractmethod
 
 DEFAULT_PATH = './datasets/opendataset' 
 class LoadingStrategy(ABC):
-    def __init__(self, base_path: str=DEFAULT_PATH):
+    def __init__(self, base_path: str=DEFAULT_PATH, verbose:bool = False):
+        self.verbose = verbose
         self.base_path = base_path 
     @abstractmethod
     def load_sensor_data(self, *args, **kwargs) -> Tuple[pd.DataFrame, dict]:
@@ -19,7 +20,7 @@ class LoadingStrategy(ABC):
 
 class FromPath(LoadingStrategy):
     def __init__(self, base_path: str=DEFAULT_PATH):
-        super().__init__(base_path)
+        super().__init__(base_path, verbose=False)
 
     def load_sensor_data(self, file_name: str) -> Tuple[pd.DataFrame, dict]:
         """
@@ -35,10 +36,11 @@ class FromPath(LoadingStrategy):
         try:
             data = pd.read_csv(file_name)
         except FileNotFoundError:
-            print("The sensor data file could not be found. Returning None.")
-            print('Passed arguments:')
-            print(f'path: {file_name}')
-            print('-'*80)
+            if self.verbose:
+                print("The sensor data file could not be found. Returning None.")
+                print('Passed arguments:')
+                print(f'path: {file_name}')
+                print('-'*80)
             return None
         data = data.astype(float)  # convert all to float. Useful for accessing views of dataframes, instead of copies.
         return data, metadata
@@ -57,10 +59,11 @@ class FromPath(LoadingStrategy):
         try:
             data = pd.read_excel(file_name)
         except FileNotFoundError:
-            print("The label data file could not be found. Returning None.")
-            print('Passed arguments:')
-            print(f'subject: {sub}')
-            print('-'*80)
+            if self.verbose:
+                print("The label data file could not be found. Returning None.")
+                print('Passed arguments:')
+                print(f'subject: {sub}')
+                print('-'*80)
             return None
 
         data = data.fillna(method='ffill')
@@ -74,7 +77,7 @@ class FromPath(LoadingStrategy):
 
 class FromCase(LoadingStrategy):
     def __init__(self, base_path: str = DEFAULT_PATH):
-        super().__init__(base_path)
+        super().__init__(base_path, verbose=False)
 
     @staticmethod
     def _transform_int(num):  # Format string
@@ -100,10 +103,11 @@ class FromCase(LoadingStrategy):
         try:
             data = pd.read_csv(file_name)
         except FileNotFoundError:
-            print("The sensor data file could not be found. Returning None.")
-            print('Passed arguments:')
-            print(f'subject: {sub}, task: {tsk}, run: {run}')
-            print('-'*80)
+            if self.verbose:
+                print("The sensor data file could not be found. Returning None.")
+                print('Passed arguments:')
+                print(f'subject: {sub}, task: {tsk}, run: {run}')
+                print('-'*80)
             return None
         data = data.astype(float)  # convert all to float. Useful for accessing views of dataframes, instead of copies.
         return data, metadata
@@ -122,10 +126,11 @@ class FromCase(LoadingStrategy):
         try:
             data = pd.read_excel(file_name)
         except FileNotFoundError:
-            print("The label data file could not be found. Returning None.")
-            print('Passed arguments:')
-            print(f'subject: {sub}')
-            print('-'*80)
+            if self.verbose:
+                print("The label data file could not be found. Returning None.")
+                print('Passed arguments:')
+                print(f'subject: {sub}')
+                print('-'*80)
             return None
 
         data = data.fillna(method='ffill')
