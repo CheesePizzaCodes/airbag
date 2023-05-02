@@ -1,12 +1,23 @@
+from typing import List
+
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import traceback
 
 
 from util import extract_marks
 
 
+def generate_graph_from_df(df: pd.DataFrame):
+    fig, ax = plt.subplots()
+    for i in range(3, 11 + 1):
+        
+        line, = ax.plot(df.iloc[:, i])
+        line.set_label(df.columns[i])
+        ax.legend()
 
+    plt.show(block=False)
 
 class Visualizer:
     def __init__(self, sensor_data: pd.DataFrame, metadata: dict, label_data: pd.DataFrame) -> None:
@@ -24,6 +35,10 @@ class Visualizer:
         for _ in self.axs:
             _.label_outer()
         pass
+
+
+    
+
     def generate_graphs(self):
         self.fig.suptitle(f'Subject: {self.sub}, Task: {self.tsk}, Run: {self.run}')
         # self.axs[-1].set_xlabel('time ($s$)') 
@@ -32,7 +47,7 @@ class Visualizer:
             # ax.set_title(value[0])
             ax.set_ylabel(value[1])
             for i in value[2]:
-                line, = ax.plot(self.sensor_data['TimeStamp(s)'], self.sensor_data[i])
+                line, = ax.plot(self.sensor_data['TimeStamp(s)'], self.sensor_data[i], '')
                 line.set_label(i)
                 ax.legend(loc=1)
                 self._add_marks(ax)
@@ -41,6 +56,7 @@ class Visualizer:
 
     def _add_marks(self, ax):
         time = self.sensor_data['TimeStamp(s)']
+
         marks = extract_marks(label_data=self.label_data, task = self.tsk, run = self.run)
         if marks is None:
             return
@@ -49,26 +65,37 @@ class Visualizer:
         ax.axvline(x=time[impact_frame], color = 'r')
 
         
-
+def plot_histograms(data_list: List[np.ndarray]):
+    fig = plt.figure()
+    # n_rows, n_cols = data.shape
+    for i in range(len(data_list[0].T)):  # number of attributes e.g. subplots
+        ax = fig.add_subplot(4, 9, i+1)
+        for data in data_list:  # reverse so that negative cases are in the background
+            sample = data.T[i]
+            ax.hist(sample, bins=100, density=True, alpha=0.5)
+    return fig, ax
 
 
 if __name__ == '__main__':
 
-    from preprocess import Loader
+    from preprocess import Loader, Normalizer
+    from normalization_strategies import MinMax
     print('*-'*20 + 'Visualización de datos' + '-*'*20)
     while True:
         
-        # sub = int(input('ID del sujeto: '))
-        # tsk = int(input('ID de la actividad: '))
-        # run = int(input('ID del intento: '))
+        sub = int(input('ID del sujeto: '))
+        tsk = int(input('ID de la actividad: '))
+        run = int(input('ID del intento: '))
 
-        sub, run, tsk = 7, 1, 32
+        # sub, run, tsk = 8, 2, 30
         
         
         loader = Loader()
+        normalizer = Normalizer(strategy=MinMax(0, 1))
 
 
         sensor_data, sensor_metadata = loader.load_sensor_data(sub, tsk, run)
+        # sensor_data = normalizer.normalize(sensor_data)
         label_data = loader.load_label_data(sub)
 
 

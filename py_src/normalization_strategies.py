@@ -24,7 +24,7 @@ class MinMax(NormalizationStrategy):
             
         checkpoint = copy.deepcopy(df)
         for i in range(3):  # normalize similar quantities in batch
-            srt = 3 + 3 * i -1 # shift 3 places every time
+            srt = 2 + 3 * i # shift 3 places every time
             end = srt + 3
 
             df.iloc[:, srt:end] = (_slice() - _slice().values.min()) / (_slice().values.max() - _slice().values.min())
