@@ -137,9 +137,10 @@ class WindowFeatureExtractor:
 
         fv = np.append(fv, window.mean())
         fv = np.append(fv, np.log(window.std()+1))
+        fv = np.append(fv, window.var())
         fv = np.append(fv, window.skew())
 
-        # fv = np.append(fv, entropy(window)) # useless statistic
+        fv = np.append(fv, entropy(window))  # useless statistic
         # TODO add more statistics
 
         return fv
@@ -271,7 +272,7 @@ def batch_preprocess():
     pppl = PreProcessingPipeline()
     pppl.loader = Loader(strategy=FromCase())
     pppl.normalizer = Normalizer(strategy=MinMax(0, 1))
-    pppl.wfe = WindowFeatureExtractor(window_size=20, overlap=0.5)
+    pppl.wfe = WindowFeatureExtractor(window_size=10, overlap=0.5)
     # load data
     data, split = pppl.batch_load()
     # normalize data
@@ -312,6 +313,6 @@ def test_1():
 if __name__ == '__main__':
     # test
     data = batch_preprocess()
-    np.save('./py_src/data/out.npy', data)
+    np.save('./py_src/data/allstats_ws10.npy', data)
     # test_1()
 
