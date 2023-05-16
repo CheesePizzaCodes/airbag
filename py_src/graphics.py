@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import traceback
+import plotly.express as px
 
 from util import extract_marks
 
@@ -63,21 +64,38 @@ class Visualizer:
 
 def plot_superimposed_histograms(data_list: List[np.ndarray]):
     for data in data_list:
-        data[data == -np.inf] = 0
+        # data[data == -np.inf] = 0
         plt.hist(data, density=True, alpha=0.5, bins=100)
-
     plt.show()
 
 
-def plot_histograms_grid(data_list: List[np.ndarray]):
+def plot_histograms_grid(data_list: List[np.ndarray], num_rows: int):
     fig = plt.figure()
     # n_rows, n_cols = data.shape
     for i in range(len(data_list[0].T)):  # number of attributes e.g. subplots
-        ax = fig.add_subplot(4, 9, i + 1)
-        for data in data_list:  # reverse so that negative cases are in the background
-            sample = data.T[i]
-            ax.hist(sample, bins=20, density=True, alpha=0.5)
+        try:
+            ax = fig.add_subplot(num_rows, 9, i+1)
+            for data in data_list:  # reverse so that negative cases are in the background
+                sample = data.T[i]
+                ax.hist(sample, bins=20, density=True, alpha=0.5)
+        except ValueError as e:
+            print(e)
+            return fig, ax
     return fig, ax
+
+
+def plot_pairwise_scatter(data, labels):
+    # Assume `data` is your 2D numpy array
+    num_samples = int(data.shape[0] * 0.1)  # Number of samples you want to draw
+    # Generate a random sample of indices
+    indices = np.random.choice(data.shape[0], size=num_samples, replace=False)
+    # Select the corresponding rows
+    sampled_data = data[indices, :]
+    sampled_labels = labels[indices]
+
+    fig = px.scatter_matrix(sampled_data, color=sampled_labels, opacity=0.1)
+    fig.show()
+    return fig
 
 
 if __name__ == '__main__':
