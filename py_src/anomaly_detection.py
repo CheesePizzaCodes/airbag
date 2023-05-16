@@ -9,11 +9,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.neighbors import KernelDensity
 from scipy.stats import multivariate_normal
 from scipy.special import log_expit, expit
 
 import preprocess
-from graphics import plot_histograms_grid, plot_superimposed_histograms
+from graphics import plot_histograms_grid, plot_superimposed_histograms, plot_pairwise_scatter
 
 
 def fit_gaussian(data):
@@ -61,12 +62,15 @@ def unique_feature_pairs(colinear_features):
 
 
 def compute_likelihood(datapoint: np.ndarray, mu: np.ndarray,
-                       sigma: np.ndarray):  # TODO implement some other measure so that it's easier to set epsilon
+                       sigma: np.ndarray) -> np.ndarray:  # TODO implement some other measure so that it's easier to set epsilon
     distribution = multivariate_normal(mu, sigma, allow_singular=False)
     likelihood = distribution.pdf(datapoint)
-    # likelihood[likelihood <= 0] = 0 + sys.float_info.epsilon
-    log_l = np.log(likelihood)
-    return log_l
+
+    likelihood = np.clip(likelihood, a_min=sys.float_info.epsilon, a_max=None)
+
+
+    return np.log(likelihood)
+
 
 
 
@@ -80,7 +84,7 @@ def compute_accuracy(predicted_values: np.ndarray, ground_truth: np.ndarray):
 
 def main(eps):
     # import data
-    data = np.load('./py_src/data/allstats_ws10.npy')
+    data = np.load('./py_src/data/ws25_ol0.5--.npy')
     data = np.nan_to_num(data, nan=0)
 
     # data = preprocess.batch_preprocess()
@@ -89,19 +93,20 @@ def main(eps):
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y ,shuffle=False)
 
-    # X = remove_colinear_features(X)
 
-    X = reduce_data_dimensionality(X, discarded_dims=4)
+
+    # X = reduce_data_dimensionality(X, remaining_dims=10)
 
     negative_cases = X[y == 0.]  # normal activities
     positive_cases = X[y == 1.]  # falls
 
     mu, sigma = fit_gaussian(negative_cases)
 
-    # fig2, ax2 = plot_histograms_grid(data_list=[positive_cases, negative_cases])
+    # fig2, ax2 = plot_histograms_grid(data_list=[negative_cases, positive_cases], num_rows=X.shape[1] // 9)
 
     likelihoods_0 = compute_likelihood(negative_cases, mu, sigma)
     likelihoods_1 = compute_likelihood(positive_cases, mu, sigma)
+
 
     # plot_superimposed_histograms([likelihoods_0, likelihoods_1])
 
@@ -125,7 +130,8 @@ def main(eps):
 if __name__ == '__main__':
     main(20)
     pts = []
-    for i in range(50, 150):
+    print('eps, f1, prec, rec')
+    for i in np.arange(10, 210, 10):
         pts.append(main(i))
 
     plt.plot(*list(zip(*pts)))
