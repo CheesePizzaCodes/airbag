@@ -1,5 +1,5 @@
 import json
-from typing import Tuple
+from typing import Tuple, List, Dict
 import numpy as np
 
 
@@ -51,3 +51,10 @@ def append_to_json_file(file_path, data):
     # Write the modified JSON data back to the file
     with open(file_path, 'w') as file:
         json.dump(json_data, file, indent=4)
+
+
+def load_evaluation_results(iteration) -> List[Dict]:
+    path = rf'.\results\results{iteration}.json'
+    with open(path, 'r') as f:
+        json_data = json.load(f)
+    return json_data
